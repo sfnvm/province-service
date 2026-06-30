@@ -15,7 +15,8 @@ spring:
 
 management:
   tracing:
-    enabled: false   # no Alloy/OTLP off-cluster
+    export:
+      enabled: false   # no Alloy/OTLP off-cluster
 
 logging:
   structured:

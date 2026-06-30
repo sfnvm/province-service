@@ -25,6 +25,8 @@ management:
     tags:
       application: ${spring.application.name}
   tracing:
+    export:
+      enabled: true   # ship traces to Alloy (local/dev profiles override to false)
     sampling:
       probability: 0.10
   opentelemetry:

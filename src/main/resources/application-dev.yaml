@@ -16,7 +16,8 @@ spring:
 
 management:
   tracing:
-    enabled: false   # don't export traces from a dev box
+    export:
+      enabled: false   # don't export traces from a dev box
 
 logging:
   structured:
