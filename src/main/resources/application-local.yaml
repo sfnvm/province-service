@@ -1,0 +1,23 @@
+# Local dev against a throwaway Postgres started by compose.yaml.
+#   SPRING_PROFILES_ACTIVE=local ./gradlew bootRun   (or scripts/run-local.sh)
+#
+# spring-boot-docker-compose starts compose.yaml and auto-wires the datasource via
+# @ServiceConnection. The explicit datasource below is a fallback for when you'd
+# rather point at your own Postgres on localhost:5432 (compose disabled).
+spring:
+  docker:
+    compose:
+      enabled: true
+  datasource:
+    url: jdbc:postgresql://localhost:5432/app
+    username: app
+    password: app
+
+management:
+  tracing:
+    enabled: false   # no Alloy/OTLP off-cluster
+
+logging:
+  structured:
+    format:
+      console:       # empty -> plain readable logs instead of ECS JSON

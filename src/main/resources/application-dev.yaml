@@ -1,0 +1,24 @@
+# Dev against the REAL shared database over WireGuard (tunnel must be up).
+# Load the creds first, then run with this profile:
+#   set -a; source ~/sauces/k8s/configs/postgres-cnpg/local-secret-postgres-app.env; set +a
+#   SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun            (or scripts/run-dev.sh)
+#
+# All values are placeholders resolved from that env file — NO secrets are stored here.
+# WARNING: this is the real application DB. Flyway will apply pending migrations to it.
+spring:
+  docker:
+    compose:
+      enabled: false   # use the real DB, do not start a local container
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_APP_VPN_PRIMARY_HOST}:${POSTGRES_APP_VPN_PORT}/${POSTGRES_APP_DBNAME}?sslmode=${POSTGRES_APP_VPN_SSLMODE}
+    username: ${POSTGRES_APP_USER}
+    password: ${POSTGRES_APP_PASSWORD}
+
+management:
+  tracing:
+    enabled: false   # don't export traces from a dev box
+
+logging:
+  structured:
+    format:
+      console:       # empty -> plain readable logs instead of ECS JSON

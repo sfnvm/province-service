@@ -38,3 +38,8 @@ out/
 
 ### Kotlin ###
 .kotlin
+
+### Local secrets / env — never commit ###
+*.env
+.env
+local-secret-*.env

@@ -36,6 +36,7 @@ dependencies {
   runtimeOnly("io.micrometer:micrometer-registry-prometheus")
   runtimeOnly("org.postgresql:postgresql")
   annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
+  developmentOnly("org.springframework.boot:spring-boot-docker-compose")
   testImplementation("org.springframework.boot:spring-boot-micrometer-tracing-test")
   testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
   testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
