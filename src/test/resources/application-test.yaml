@@ -1,0 +1,11 @@
+# Test profile: schema comes from the Testcontainers init script, not Flyway.
+spring:
+  flyway:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: none
+management:
+  tracing:
+    export:
+      enabled: false
