@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:17
     environment:
-      POSTGRES_DB: app
+      POSTGRES_DB: vietnamese_provinces
       POSTGRES_USER: app
       POSTGRES_PASSWORD: app
     ports:

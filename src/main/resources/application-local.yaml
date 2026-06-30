@@ -9,7 +9,7 @@ spring:
     compose:
       enabled: true
   datasource:
-    url: jdbc:postgresql://localhost:5432/app
+    url: jdbc:postgresql://localhost:5432/vietnamese_provinces
     username: app
     password: app
 

@@ -2,7 +2,7 @@ spring:
   application:
     name: province
   datasource:
-    url: jdbc:postgresql://postgres-rw.postgres.svc.cluster.local:5432/app
+    url: jdbc:postgresql://postgres-rw.postgres.svc.cluster.local:5432/vietnamese_provinces
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
   jpa:
