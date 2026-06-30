@@ -13,6 +13,10 @@ spring:
     url: jdbc:postgresql://${POSTGRES_APP_VPN_PRIMARY_HOST}:${POSTGRES_APP_VPN_PORT}/${POSTGRES_APP_DBNAME}?sslmode=${POSTGRES_APP_VPN_SSLMODE}
     username: ${POSTGRES_APP_USER}
     password: ${POSTGRES_APP_PASSWORD}
+  flyway:
+    # The dev DB was populated by hand before Flyway existed. Adopt that existing
+    # schema as the baseline (creates flyway_schema_history); migrations run from V2+.
+    baseline-on-migrate: true
 
 management:
   tracing:
