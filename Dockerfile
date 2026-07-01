@@ -10,8 +10,10 @@ COPY gradle ./gradle
 RUN ./gradlew --no-daemon dependencies >/dev/null 2>&1 || true
 
 COPY src ./src
+# Commit sha for /actuator/info (the build context has no .git). CI passes GITHUB_SHA.
+ARG GIT_COMMIT=unknown
 # bootJar only (does not run the plain `jar` task or tests); CI runs tests separately.
-RUN ./gradlew --no-daemon clean bootJar
+RUN ./gradlew --no-daemon clean bootJar -PgitCommit="$GIT_COMMIT"
 # Split into cache-friendly pieces. The `tools` jarmode emits a thin runnable jar
 # (Class-Path → lib/) under application/ plus the dependency lib/ under dependencies/.
 # Rename the app jar to a stable name so the runtime entrypoint is version-agnostic.

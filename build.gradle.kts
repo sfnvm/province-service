@@ -62,6 +62,23 @@ allOpen {
   annotation("jakarta.persistence.Embeddable")
 }
 
+// Emit META-INF/build-info.properties (surfaced at /actuator/info). The commit is
+// passed in by CI/Docker via -PgitCommit=<sha> (the container build has no .git);
+// it falls back to the GIT_COMMIT env var, then "unknown" for plain local builds.
+springBoot {
+  buildInfo {
+    properties {
+      additional.put(
+        "commit",
+        providers
+          .gradleProperty("gitCommit")
+          .orElse(providers.environmentVariable("GIT_COMMIT"))
+          .getOrElse("unknown"),
+      )
+    }
+  }
+}
+
 tasks.withType<Test> {
   useJUnitPlatform()
 }

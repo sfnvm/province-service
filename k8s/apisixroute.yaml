@@ -30,3 +30,18 @@ spec:
             regex_uri:
               - ^/province-service(/api/v1/.*)$
               - $1
+    # Expose ONLY /actuator/info (build version + commit) — not the rest of actuator.
+    - name: province-info
+      match:
+        paths:
+          - /province-service/actuator/info
+      backends:
+        - serviceName: province-service
+          servicePort: 8080
+      plugins:
+        - name: proxy-rewrite
+          enable: true
+          config:
+            regex_uri:
+              - ^/province-service(/actuator/info)$
+              - $1
