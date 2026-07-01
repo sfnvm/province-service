@@ -1,0 +1,22 @@
+# Mirrors ~/sauces/k8s/configs/observability/spring-boot-servicemonitor.example.yaml:
+# the ServiceMonitor lives in `monitoring` and selects the app Service cross-namespace.
+# If the kube-prometheus-stack is configured with a serviceMonitorSelector (release
+# label), add that label here — verify with the stack's values.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: province-service
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: province-service
+spec:
+  namespaceSelector:
+    matchNames:
+      - province
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: province-service
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: 30s

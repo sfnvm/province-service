@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: province-service
+  namespace: province
+  labels:
+    app.kubernetes.io/name: province-service
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: province-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: province-service
+    spec:
+      imagePullSecrets:
+        - name: harbor-auth
+      containers:
+        - name: province-service
+          # Registry port :9443 matches the harbor-auth pull secret's auth key.
+          # Pinned to an immutable sha tag — this Harbor's `library` project silently
+          # drops the `latest` tag. CI bumps this to the pushed GITHUB_SHA on deploy.
+          image: harbor.sfnvm.com:9443/library/province-service:38d99af
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            # DB creds from the sealed `province-postgres` secret. No SPRING_PROFILES_ACTIVE
+            # → the default application.yaml (in-cluster config) is used.
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: province-postgres
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: province-postgres
+                  key: POSTGRES_PASSWORD
+          resources:
+            requests:
+              cpu: 100m
+              memory: 384Mi
+            limits:
+              cpu: 500m
+              memory: 768Mi
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 5
+            failureThreshold: 30 # up to ~150s for JVM + Flyway + JPA startup
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 15
+            failureThreshold: 3
+      terminationGracePeriodSeconds: 40 # matches server.shutdown: graceful

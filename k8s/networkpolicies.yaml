@@ -1,0 +1,116 @@
+# Rendered from ~/sauces/k8s/configs/platform-guardrails/networkpolicies.yaml (province),
+# plus an app-specific rule allowing Prometheus (monitoring ns) to scrape metrics.
+# Roll out and verify on this namespace before relying on it (guardrails guidance).
+---
+# 1. Default-deny everything (ingress + egress).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: province
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+# 2. Allow DNS egress (CoreDNS in kube-system).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: province
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+---
+# 3. Allow the Istio ambient mesh control/data plane (ztunnel HBONE + istiod).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-istio-ambient-egress
+  namespace: province
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: istio-system
+      ports:
+        - { protocol: TCP, port: 15008 } # HBONE (ztunnel data plane)
+        - { protocol: TCP, port: 15012 } # istiod xDS
+        - { protocol: TCP, port: 15014 } # istiod monitoring
+---
+# 4. Allow intra-namespace traffic.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-intra-namespace
+  namespace: province
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from: [{ podSelector: {} }]
+  egress:
+    - to: [{ podSelector: {} }]
+---
+# 5. Allow north-south ingress from the APISIX gateway only.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-from-apisix
+  namespace: province
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-apisix
+---
+# 6. Allow egress to the Postgres (CNPG) datastore.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-postgres
+  namespace: province
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: postgres
+      ports:
+        - { protocol: TCP, port: 5432 }
+---
+# 7. Allow Prometheus (monitoring ns) to scrape /actuator/prometheus on 8080.
+#    Without this, default-deny blocks the scrape and the ServiceMonitor target is down.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-metrics-from-monitoring
+  namespace: province
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: province-service
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - { protocol: TCP, port: 8080 }

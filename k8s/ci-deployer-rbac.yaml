@@ -1,0 +1,50 @@
+# Least-privilege identity for CI deploys (the KUBE_CONFIG_B64 GitHub secret).
+# Scoped to the `province` namespace and only what the workflow's Deploy step does:
+#   kubectl set image deploy/province-service ...   (patch deployments)
+#   kubectl rollout status deploy/province-service  (get/watch deployments + read rs/pods)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ci-deployer
+  namespace: province
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ci-deployer
+  namespace: province
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ci-deployer
+  namespace: province
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ci-deployer
+subjects:
+  - kind: ServiceAccount
+    name: ci-deployer
+    namespace: province
+---
+# Long-lived token for the SA (k8s 1.24+ no longer auto-creates one). The token
+# is populated by the controller; extract it to build the CI kubeconfig.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ci-deployer-token
+  namespace: province
+  annotations:
+    kubernetes.io/service-account.name: ci-deployer
+type: kubernetes.io/service-account-token

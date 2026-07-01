@@ -1,0 +1,25 @@
+# Rendered from ~/sauces/k8s/configs/platform-guardrails/hpa-template.yaml
+# (app-ns=province, deployment=province-service). Needs the Deployment's resource
+# requests (set in deployment.yaml) for the CPU target to resolve.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: province-service
+  namespace: province
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: province-service
+  minReplicas: 1
+  maxReplicas: 3 # conservative ceiling for the 3-node cluster
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300

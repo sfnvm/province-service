@@ -1,0 +1,32 @@
+# Internal-only route (reached over WireGuard via the central gateway at
+# http://10.8.0.X:9080/province-service/api/v1/...). Service-oriented URL: the
+# gateway namespaces this service under /province-service and strips that prefix
+# (proxy-rewrite) so the app keeps serving /api/v1/... internally.
+# Lives in the `province` namespace so `serviceName` resolves locally and the
+# allow-ingress-from-apisix NetworkPolicy applies. No auth plugins yet — add
+# key-auth + limit-count (see configs/apisix/commands.md) once API mgmt is wanted.
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: province-service
+  namespace: province
+spec:
+  # Bind to the apisix IngressClass (it is not the cluster default, so an
+  # explicit class is required for the v2 controller to process this route).
+  ingressClassName: apisix
+  http:
+    - name: province-api
+      match:
+        paths:
+          - /province-service/api/v1/*
+      backends:
+        - serviceName: province-service
+          servicePort: 8080
+      plugins:
+        # Strip the /province-service gateway prefix before forwarding upstream.
+        - name: proxy-rewrite
+          enable: true
+          config:
+            regex_uri:
+              - ^/province-service(/api/v1/.*)$
+              - $1
