@@ -10,9 +10,14 @@ spring:
     compose:
       enabled: false   # use the real DB, do not start a local container
   datasource:
-    url: jdbc:postgresql://${POSTGRES_APP_VPN_PRIMARY_HOST}:${POSTGRES_APP_VPN_PORT}/${POSTGRES_APP_DBNAME}?sslmode=${POSTGRES_APP_VPN_SSLMODE}
+    url: jdbc:postgresql://${POSTGRES_APP_VPN_PRIMARY_HOST}:${POSTGRES_APP_VPN_PORT}/${POSTGRES_APP_DBNAME}?sslmode=${POSTGRES_APP_VPN_SSLMODE}&tcpKeepAlive=true
     username: ${POSTGRES_APP_USER}
     password: ${POSTGRES_APP_PASSWORD}
+    hikari:
+      # Small warm pool for dev. keepalive-time + max-lifetime (application.yaml) keep
+      # these connections alive through WireGuard's idle reaping, so they don't go stale.
+      minimum-idle: 2
+      maximum-pool-size: 5
   flyway:
     # The dev DB was populated by hand before Flyway existed. Adopt that existing
     # schema as the baseline (creates flyway_schema_history); migrations run from V2+.
@@ -24,6 +29,10 @@ management:
       enabled: false   # don't export traces from a dev box
 
 logging:
+  level:
+    # The pool now drains when idle, but an occasional WireGuard idle-drop is
+    # unavoidable and benign (Hikari just replaces the connection). Quiet it in dev.
+    com.zaxxer.hikari.pool.PoolBase: "OFF"
   structured:
     format:
       console:       # empty -> plain readable logs instead of ECS JSON

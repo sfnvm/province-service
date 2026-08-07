@@ -5,6 +5,11 @@ spring:
     url: jdbc:postgresql://postgres-rw.postgres.svc.cluster.local:5432/vietnamese_provinces
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
+    hikari:
+      # Keep pooled connections warm and retire them before anything upstream reaps
+      # them (mainly relevant off-cluster over WireGuard; harmless in-cluster).
+      keepalive-time: 30000 # ping idle connections every 30s (Hikari minimum)
+      max-lifetime: 300000 # retire a connection after 5 min
   jpa:
     hibernate:
       ddl-auto: validate   # Flyway owns the schema
