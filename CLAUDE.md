@@ -6,8 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A read-only REST API (Spring Boot 4.1, Kotlin, Java 21) exposing Vietnam's administrative
 data — provinces, wards, administrative units/regions — from a shared Postgres database
-(`vietnamese_provinces`). It runs on a self-hosted 3-node k8s cluster behind an internal
-APISIX gateway. The repo holds the app plus its Dockerfile, CI, and k8s manifests.
+(`vietnamese_provinces`). It runs on the 3-node homelab cluster (RKE2), internal only (ClusterIP, no
+public route). The repo holds the app, its Dockerfile and CI; the Kubernetes manifests live in
+`sfnvm/homelab` under `k8s/apps/province/`.
 
 ## Commands
 
@@ -73,25 +74,20 @@ Layered under `com.sfnvm.province`:
   from the jar manifest and commit from a `GIT_COMMIT` env baked into the image (CI passes the sha
   as `--build-arg GIT_COMMIT`).
 
-## Deployment (`k8s/`)
+## Deployment
 
-Full apply order and verification are in `k8s/README.md`. Key rules:
-
-- **Manifests are applied by hand** (`kubectl apply -f k8s/...`). CI only builds/pushes the image
-  and does `kubectl set image` — it does **not** apply manifests, and there is no GitOps
-  controller. Editing a manifest and committing does not deploy it.
-- **Image/code changes deploy automatically** via CI on push to `main` (build → Harbor →
-  `set image` by sha).
-- **Harbor is `harbor.sfnvm.com:9443`** (443 is the public edge) and its `library` project
-  silently drops the `latest` tag — always deploy by an immutable **sha** tag.
-- **APISIX routes need `spec.ingressClassName: apisix`** (the class is not cluster-default). The
-  gateway namespaces the service under `/province-service/...` and strips that prefix
-  (`proxy-rewrite`); only `/api/v1/*` and `/actuator/info` are exposed externally.
-- Default-deny NetworkPolicies require an explicit egress allow for every dependency (Postgres
-  5432, Alloy OTLP 4318, etc.) or connections silently time out.
+- **GitOps:** push to `main` runs `.github/workflows/deploy.yml`: test → build and push
+  `ghcr.io/sfnvm/province-service:<sha>` (private GHCR) → the `deploy` job bumps the tag in
+  `sfnvm/homelab` (`k8s/apps/province/province-service.yaml`, write deploy key in secret
+  `HOMELAB_DEPLOY_KEY`) → Argo CD rolls it out. CI never talks to the cluster.
+- Manifests (Deployment, Service, HPA) and the SealedSecret with DB credentials are in
+  `sfnvm/homelab`. Change them there, not here.
+- Internal only: no HTTPRoute. Test with
+  `kubectl -n province port-forward svc/province-service 8080:8080`.
+- DB: CNPG cluster `postgres-rw.postgres.svc`, database `vietnamese_provinces`, role `province`.
+- Tracing export is disabled (`MANAGEMENT_TRACING_EXPORT_ENABLED=false`) until a monitoring stack exists.
 
 ## Secrets
 
-DB creds and the Harbor pull secret are committed as **SealedSecrets** (encrypted, scoped to the
-`province` namespace); generate/rotate them with `k8s/generate-secrets.sh`. Real `*.env` files and
-kubeconfigs are gitignored — never commit them.
+Real `*.env` files and kubeconfigs are gitignored — never commit them. Cluster secrets are
+SealedSecrets in `sfnvm/homelab`.
